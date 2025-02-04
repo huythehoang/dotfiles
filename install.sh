@@ -28,6 +28,7 @@ SCRIPT_GIT_DIR="${SCRIPT_DIR}/.git"
 
 RUN_APT_INSTALL=${RUN_APT_INSTALL:-true} # Install packages with apt-get
 RUN_NIX_INSTALL=${RUN_NIX_INSTALL:-false} # Setup and install packages using Nix
+RUN_KUBECOLOR_INSTALL=${RUN_KUBECOLOR_INSTALL:-true} # Install kubecolor
 
 SETUP_OH_MY_ZSH=${SETUP_OH_MY_ZSH:-true} # Install oh-my-zsh
 SETUP_OH_MY_FISH=${SETUP_OH_MY_FISH:-false} # Install oh-my-fish, fisher, and some useful plugins for the Fish shell
@@ -38,8 +39,8 @@ _DEFAULT_LOCAL_NEOVIM_CONFIG_LOCATION="${SCRIPT_DIR}/${DOTFILES_TO_SYMLINK}/conf
 LOCAL_NEOVIM_CONFIG_LOCATION=${LOCAL_NEOVIM_CONFIG_LOCATION:-_DEFAULT_LOCAL_NEOVIM_CONFIG_LOCATION}
 
 # Monorepo management
-MONOREPO_CLONE_LOCATION=${MONOREPO_CLONE_LOCATION:-"$HOME/workspaces/discord"}
-AUTOCLONE_MONOREPO=${AUTOCLONE_MONOREPO:-true}
+MONOREPO_CLONE_LOCATION=${MONOREPO_CLONE_LOCATION:-"$HOME/discord"}
+AUTOCLONE_MONOREPO=${AUTOCLONE_MONOREPO:-false}
 
 # Autostart configurations
 AUTO_CLYDE_SETUP=${AUTO_CLYDE_SETUP:-false} # Automatically run clyde setup
@@ -68,6 +69,37 @@ install_deb() {
 
 if [ "$RUN_APT_INSTALL" = true ]; then
     echo "Installing debian packages with dpkg/apt"
+
+    #----------------------------
+    # Extra apt repositories
+    #----------------------------
+    apt_repositories=(
+        'ppa:o2sh/onefetch'
+    )
+    echo "Adding extra APT repositories..."
+    for repository in "${apt_repositories[@]}"; do
+        sudo DEBIAN_FRONTEND=noninteractive add-apt-repository -y "$repository"
+    done
+
+    #----------------------------
+    # Update and upgrade apt
+    #----------------------------
+    echo "Running apt update and upgrade..."
+    sudo apt update -y
+    sudo apt upgrade -y
+
+    #----------------------------
+    # Install extra packages:
+    # neofetch (TODO: switch off neofetch eventually) and onefetch.
+    #----------------------------
+    packages=(
+        'neofetch'  # TODO: switch off neofetch
+        'onefetch'
+    )
+    echo "Installing extra apt packages..."
+    for package in "${packages[@]}"; do
+        sudo apt install -y "$package"
+    done
 
     # Install some useful tools (bat/fzf/ripgrep/fd)
     install_deb "https://github.com/BurntSushi/ripgrep/releases/download/12.1.1/" "ripgrep_12.1.1_amd64.deb"
@@ -217,6 +249,84 @@ if [ "$AUTOSTART_WEB" = true ]; then
 elif [ "$AUTOSTART_BACKEND" = true ]; then
     echo "Automatically starting full Discord backend"
     run_with_shell_in_dir $MONOREPO_CLONE_LOCATION "./clyde start --exit-when-done"
+fi
+
+###################################################################################################
+# kubecolor Installation
+###################################################################################################
+# kubecolor requires kubectl to be installed.
+if ! command -v kubectl &>/dev/null; then
+    echo "Warning: kubectl is not installed. kubecolor requires kubectl to work correctly."
+fi
+
+if [ "$RUN_KUBECOLOR_INSTALL" = true ]; then
+    echo "Installing kubecolor..."
+
+    # Fetch the latest release version from GitHub
+    KUBECOLOR_VERSION=$(curl -s https://api.github.com/repos/kubecolor/kubecolor/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
+
+    if [ -z "$KUBECOLOR_VERSION" ]; then
+        echo "Error: Unable to fetch kubecolor version."
+        exit 1
+    fi
+
+    echo "Latest kubecolor version: v${KUBECOLOR_VERSION}"
+
+    # Define the download URL based on the operating system and architecture
+    OS=$(uname | tr '[:upper:]' '[:lower:]')
+    ARCH=$(uname -m)
+
+    case "$ARCH" in
+        x86_64)
+            ARCH="amd64"
+            ;;
+        aarch64 | arm64)
+            ARCH="arm64"
+            ;;
+        *)
+            echo "Unsupported architecture: $ARCH"
+            exit 1
+            ;;
+    esac
+
+    DOWNLOAD_URL="https://github.com/kubecolor/kubecolor/releases/download/v${KUBECOLOR_VERSION}/kubecolor_${KUBECOLOR_VERSION}_${OS}_${ARCH}.tar.gz"
+
+    echo "Downloading kubecolor from $DOWNLOAD_URL"
+    curl -Lo kubecolor.tar.gz "$DOWNLOAD_URL"
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to download kubecolor."
+        exit 1
+    fi
+
+    # Extract the downloaded tarball
+    tar -xzf kubecolor.tar.gz
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to extract kubecolor.tar.gz."
+        rm -f kubecolor.tar.gz
+        exit 1
+    fi
+
+    # Remove LICENSE and README.md files after extraction
+    rm -f LICENSE README.md
+
+    # Ensure the kubecolor binary is executable
+    chmod +x kubecolor
+
+    # Move the binary to /usr/local/bin
+    sudo mv kubecolor /usr/local/bin/
+
+    if [ $? -ne 0 ]; then
+        echo "Error: Failed to move kubecolor to /usr/local/bin."
+        rm -f kubecolor.tar.gz kubecolor
+        exit 1
+    fi
+
+    # Clean up the tarball
+    rm -f kubecolor.tar.gz
+
+    echo "kubecolor installation complete!"
 fi
 
 ###################################################################################################

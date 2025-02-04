@@ -117,9 +117,13 @@ alias disc="cd ~/discord"
 
 alias clyde='/home/discord/discord/clyde'
 
-# Replace kubectl with kubecolor
-# export KUBECOLOR_CONFIG="$HOME/.config/kubecolor.yaml"
-# alias kubectl=kubecolor
+# Conditionally alias kubectl to kubecolor if kubecolor is installed
+if command -v kubecolor >/dev/null 2>&1; then
+    alias kubectl=kubecolor
+else
+    # Optionally, you can explicitly alias kubectl to itself to ensure default behavior
+    alias kubectl='command kubectl'
+fi
 
 ## VISUAL DETECTION ALIASES
 alias hashmatchprd='kubectl --context teleport.discord.tools-discord-anti-abuse-prd-cluster-1 --namespace hasher-matcher '
@@ -164,6 +168,11 @@ alias build_vd='bzl run //discord_harbormaster:cli -- --push build discord_visua
 alias apply_vd_stg='bzl run //discord_devops/k8s/configs/anti-abuse-stg/hasher_matcher:hasher_matcher_object.apply'
 alias apply_vd_prd='bzl run //discord_devops/k8s/configs/anti-abuse-prd/cluster-1/hasher_matcher:hasher_matcher_object.apply'
 
+# Add nix to the path
+if [ -e ${HOME}/.nix-profile/etc/profile.d/nix.sh ]; then
+    . ${HOME}/.nix-profile/etc/profile.d/nix.sh;
+fi
+
 # git repository greeter https://github.com/o2sh/onefetch/wiki/getting-started
 last_repository=
 check_directory_for_new_repository() {
@@ -193,6 +202,3 @@ neofetch
 # source ~/.zsh/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
 # source ~/.zsh/zsh-autocomplete/zsh-autocomplete.plugin.zsh
 # source ~/.zsh/zsh-history-substring-search/zsh-history-substring-search.zsh
-
-# Homebrew
-eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
