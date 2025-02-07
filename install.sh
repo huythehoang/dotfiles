@@ -29,6 +29,8 @@ SCRIPT_GIT_DIR="${SCRIPT_DIR}/.git"
 RUN_APT_INSTALL=${RUN_APT_INSTALL:-true} # Install packages with apt-get
 RUN_NIX_INSTALL=${RUN_NIX_INSTALL:-false} # Setup and install packages using Nix
 RUN_KUBECOLOR_INSTALL=${RUN_KUBECOLOR_INSTALL:-true} # Install kubecolor
+RUN_PGCLI_INSTALL=${RUN_PGCLI_INSTALL:-true}         # Install pgcli (Postgres CLI)
+RUN_TERRAFORM_LANDSCAPE_INSTALL=${RUN_TERRAFORM_LANDSCAPE_INSTALL:-true} # Install Terraform Landscape
 
 SETUP_OH_MY_ZSH=${SETUP_OH_MY_ZSH:-true} # Install oh-my-zsh
 SETUP_OH_MY_FISH=${SETUP_OH_MY_FISH:-false} # Install oh-my-fish, fisher, and some useful plugins for the Fish shell
@@ -327,6 +329,49 @@ if [ "$RUN_KUBECOLOR_INSTALL" = true ]; then
     rm -f kubecolor.tar.gz
 
     echo "kubecolor installation complete!"
+fi
+
+###################################################################################################
+# pgcli Installation
+###################################################################################################
+if [ "$RUN_PGCLI_INSTALL" = true ]; then
+    if ! command -v pgcli &>/dev/null; then
+        echo "Installing pgcli..."
+        # Attempt to install pgcli via APT; if you prefer a pip-based install, replace the next line with:
+        # sudo pip install -U pgcli
+        sudo apt-get install -y pgcli || {
+            echo "Error: Failed to install pgcli."
+            exit 1
+        }
+    else
+        echo "pgcli is already installed, skipping."
+    fi
+fi
+
+###################################################################################################
+# Terraform Landscape Installation
+###################################################################################################
+if [ "$RUN_TERRAFORM_LANDSCAPE_INSTALL" = true ]; then
+    if ! command -v landscape &>/dev/null; then
+        echo "Installing Terraform Landscape..."
+        
+        # Ensure Ruby is installed
+        if ! command -v ruby &>/dev/null; then
+            echo "Ruby is not installed. Installing Ruby..."
+            sudo apt update -y
+            sudo apt install -y ruby-full build-essential
+        fi
+
+        # Install Terraform Landscape using RubyGems
+        sudo gem install terraform_landscape || {
+            echo "Error: Failed to install Terraform Landscape via RubyGems."
+            exit 1
+        }
+
+        echo "Terraform Landscape installation complete!"
+    else
+        echo "Terraform Landscape is already installed, skipping."
+    fi
 fi
 
 ###################################################################################################
