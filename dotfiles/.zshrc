@@ -194,7 +194,7 @@ cd() {
 # Function to print out STG_DB_PW and PRD_DB_PW, then run pgcli with any arguments.
 pgcli() {
     echo "STG_DB_PW: $STG_DB_PW"
-    echo "PRD_DB_PW: $PROD_DB_PW"
+echo "PRD_DB_PW: $PROD_DB_PW"
     command pgcli "$@"
 }
 
