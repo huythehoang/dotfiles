@@ -88,7 +88,7 @@ if [ "$RUN_APT_INSTALL" = true ]; then
     #----------------------------
     echo "Running apt update and upgrade..."
     sudo apt update -y
-    sudo apt upgrade -y
+    echo -e 'n\n' | sudo apt upgrade -y
 
     #----------------------------
     # Install extra packages:
