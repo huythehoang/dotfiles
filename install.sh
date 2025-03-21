@@ -31,6 +31,7 @@ RUN_NIX_INSTALL=${RUN_NIX_INSTALL:-false} # Setup and install packages using Nix
 RUN_KUBECOLOR_INSTALL=${RUN_KUBECOLOR_INSTALL:-true} # Install kubecolor
 RUN_PGCLI_INSTALL=${RUN_PGCLI_INSTALL:-true}         # Install pgcli (Postgres CLI)
 RUN_TERRAFORM_LANDSCAPE_INSTALL=${RUN_TERRAFORM_LANDSCAPE_INSTALL:-true} # Install Terraform Landscape
+RUN_AWS_CLI_INSTALL=${RUN_AWS_CLI_INSTALL:-true} # Install AWS CLI
 
 SETUP_OH_MY_ZSH=${SETUP_OH_MY_ZSH:-true} # Install oh-my-zsh
 SETUP_OH_MY_FISH=${SETUP_OH_MY_FISH:-false} # Install oh-my-fish, fisher, and some useful plugins for the Fish shell
@@ -354,7 +355,7 @@ fi
 if [ "$RUN_TERRAFORM_LANDSCAPE_INSTALL" = true ]; then
     if ! command -v landscape &>/dev/null; then
         echo "Installing Terraform Landscape..."
-        
+
         # Ensure Ruby is installed
         if ! command -v ruby &>/dev/null; then
             echo "Ruby is not installed. Installing Ruby..."
@@ -371,6 +372,31 @@ if [ "$RUN_TERRAFORM_LANDSCAPE_INSTALL" = true ]; then
         echo "Terraform Landscape installation complete!"
     else
         echo "Terraform Landscape is already installed, skipping."
+    fi
+fi
+
+###################################################################################################
+# AWS CLI Installation
+###################################################################################################
+if [ "$RUN_AWS_CLI_INSTALL" = true ]; then
+    if ! command -v aws &>/dev/null || [ "$(aws --version | cut -d ' ' -f1 | cut -d '/' -f2 | cut -d '.' -f1)" -lt 2 ]; then
+        echo "Installing AWS CLI version 2..."
+
+        # Download the installation package
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+
+        # Unzip the installer
+        unzip -q awscliv2.zip
+
+        # Run the install program
+        sudo ./aws/install
+
+        # Clean up the downloaded files
+        rm -rf aws awscliv2.zip
+
+        echo "AWS CLI installation complete!"
+    else
+        echo "AWS CLI v2 is already installed, skipping."
     fi
 fi
 
